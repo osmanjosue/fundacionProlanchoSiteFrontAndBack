@@ -18,6 +18,7 @@ router.post('/',
     check('name', 'hace falta el nombre del usuario').notEmpty(),
     check('password', 'Es necesaria una contraseña').notEmpty(),
     // check('role', 'No sabemos si es admin o user').notEmpty(),  //quitamos esta validacion porque en el modelo viene un valor default: "USER_ROLE"
+    validarJWT,
     validarCampos,
 
 ]

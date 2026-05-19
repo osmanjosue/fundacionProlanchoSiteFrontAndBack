@@ -7,7 +7,7 @@ const Project = require('../models/project-model');
 
 const getProjects = async (req, res = response) => {
 
-    const projects = await Project.find({}, 'projectName userId published img')
+    const projects = await Project.find({published: true}, 'projectName userId published img')
     res.json({
         ok: true,
         projects

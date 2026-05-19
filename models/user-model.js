@@ -22,7 +22,7 @@ const UserSchema=Schema({
 
  /* CODIGO DE FERNANDO HERRERA */
 UserSchema.method('toJSON', function(){
-    const { __v, ...object } = this.toObject();
+    const { __v, password, ...object } = this.toObject();
 
     return object;
 })
