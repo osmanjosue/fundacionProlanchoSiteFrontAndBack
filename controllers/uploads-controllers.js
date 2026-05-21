@@ -59,6 +59,7 @@ const uploadImage = async (req, res = response) => {
             ok: true,
             msg: 'Subida Exitosa',
             fileNames,
+            fileName: fileNames[0] // <--- Añadimos esto para que tu frontend viejo lo encuentre en singular
         })
     } catch (err) {
         console.log(err);
