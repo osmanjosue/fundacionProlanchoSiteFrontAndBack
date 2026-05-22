@@ -1,7 +1,6 @@
-const Article = require('../models/articles-model')
+const Article = require('../models/articles-model');
 const { v4: uuidv4 } = require('uuid');
 const { cloudinaryUpload } = require('./cloudinary');
-const path = require('path'); // <-- Importamos path nativo de Node
 
 const uploadSingle = async (file, type, validExtensions, article) => {
 
@@ -10,37 +9,24 @@ const uploadSingle = async (file, type, validExtensions, article) => {
 
         if (!validExtensions.includes(extFile)) {
             console.log('No es un tipo de extension valido');
-            return false; // Retornamos falso para que Angular sepa que no se procesó
+            return false; 
         }
 
+        // Generamos el nombre único basado en UUID
         const fileName = `${uuidv4()}.${extFile}`;
         
-        // FORZAMOS RUTA ABSOLUTA PARA EL VPS
-        // Modifica los '../' dependiendo de qué tan profundo esté este archivo helper
-        const absolutePath = path.join(__dirname, '../uploads', type, fileName);
+        // 2. Pasamos el BUFFER del archivo Y el NOMBRE único que inventamos
+        await cloudinaryUpload(file.data, fileName); 
 
-        // 1. Esperamos a que el archivo se mueva COMPLETAMENTE a la carpeta local
-        // Nota: express-fileupload requiere envolver .mv en una Promesa si no responde con una de forma nativa
-        await new Promise((resolve, reject) => {
-            file.mv(absolutePath, (err) => {
-                if (err) return reject(err);
-                resolve();
-            });
-        });
-
-        // 2. Ahora que el archivo SÍ existe localmente de forma segura, lo subimos a Cloudinary
-        await cloudinaryUpload(absolutePath);
-
-        // 3. Agregamos al array del artículo y salvamos en MongoDB
-        article.images.push(fileName);
+        // 3. Guardamos ÚNICAMENTE el string del nombre en MongoDB
+        article.images.push(fileName); 
         await article.save();
 
-        // 4. Retornamos el nombre con éxito total
+        // 4. Retornamos el nombre a Angular para mantener la compatibilidad
         return fileName;
 
     } catch (error) {
         console.error("Error dentro de uploadSingle:", error);
-        // Retornamos falso o lanzamos el error limpio para que el controlador que maneja el HTTP (el res.status) sepa qué responder
         throw new Error(error.message || error);
     }
 }

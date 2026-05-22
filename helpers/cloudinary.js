@@ -1,7 +1,4 @@
-
-
 const { v2: cloudinary } = require('cloudinary');
-const { borrarImagenCarpetaLocal } = require('./updateOrDeleteFiles');
 require('dotenv').config();
 
 cloudinary.config({
@@ -11,36 +8,46 @@ cloudinary.config({
     secure: true,
 });
 
-const options = {
-    use_filename: true,
-    unique_filename: false,
-    overwrite: true,
-    folder: 'uploads',
-};
-
-const cloudinaryUpload = async (path) => {
-
-    /* ----------- Cloudinary Seccion Start ----------- */
-    // Use the uploaded file's name as the asset's public ID and 
-    // allow overwriting the asset with new versions        
+// Ahora la función acepta el buffer y el nombre del archivo
+const cloudinaryUpload = async (fileBuffer, fileName) => {
     try {
-        const result = await cloudinary.uploader
-            .upload(path, options);
-        await borrarImagenCarpetaLocal(path)
-        return result.secure_url;
+        // Extraemos solo el UUID eliminando el '.jpg' o '.png' para el public_id
+        const publicIdClean = fileName.split('.').at(0);
+
+        const options = {
+            public_id: publicIdClean, // Forzamos a Cloudinary a usar nuestro UUID
+            overwrite: true,
+            folder: 'uploads',
+        };
+
+        const result = await new Promise((resolve, reject) => {
+            cloudinary.uploader.upload_stream(options, (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            }).end(fileBuffer);
+        });
+
+        return result; // Retorna el objeto completo de Cloudinary de forma segura
     }
     catch (err) {
-        await borrarImagenCarpetaLocal(path)
-        throw new Error(JSON.stringify(err))
+        throw new Error(JSON.stringify(err));
     }
-    /* ----------- Cloudinary Seccion End ----------- */
-
 }
 
-const cloudinaryDelete = async (path) => {
-    cloudinary.uploader.destroy(path)
-        .then(result => console.log(result))
-        ;
+// Corregimos para que borre usando el nombre guardado en Mongo (ej: "uuid.jpg")
+const cloudinaryDelete = async (fileName) => {
+    try {
+        const publicIdClean = fileName.split('.').at(0);
+        // Construimos la ruta exacta dentro de Cloudinary (ej: "uploads/tu-uuid")
+        const pathInCloudinary = `uploads/${publicIdClean}`; 
+        
+        const result = await cloudinary.uploader.destroy(pathInCloudinary);
+        console.log("Resultado del borrado en Cloudinary:", result);
+        return result;
+    } catch (error) {
+        console.error("Error al borrar en Cloudinary:", error);
+        throw error;
+    }
 }
 
 module.exports = {
