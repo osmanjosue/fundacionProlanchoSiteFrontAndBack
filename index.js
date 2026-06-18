@@ -6,7 +6,16 @@ const path = require ('path');
 const { dbConnection } = require('./database/config')
 
 const app = express(); //creates express server
-app.use( cors() );// cors configuration
+app.use( cors({
+    origin: [
+        'http://localhost:5173',
+        'http://localhost:3000',
+        'https://drafrancisherrera.com',
+        'https://www.drafrancisherrera.com',
+        'https://fundacionprolancho.org',
+        'https://www.fundacionprolancho.org'
+    ]
+}) );// cors configuration
 
 //Carpeta publica
 app.use( express. static ('public'));
@@ -22,6 +31,7 @@ app.use( '/api/users', require('./routes/user-routes'));
 app.use( '/api/projects', require ('./routes/project-routes'));
 app.use( '/api/uploads', require ('./routes/uploads-routes'));
 app.use( '/api/email', require('./routes/email-routes') );
+app.use( '/api/webhook_chatbot_drafrancisherrera', require('./routes/webhook_chatbot_drafrancisherrera-routes') );
 //routes Ends
 
 // Lo último
