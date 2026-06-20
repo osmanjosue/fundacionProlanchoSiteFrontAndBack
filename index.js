@@ -5,6 +5,7 @@ const path = require ('path');
 
 const { dbConnection } = require('./database/config')
 const { ALLOWED_ORIGINS } = require('./config/allowed-origins');
+const { createRateLimiter } = require('./middlewares/rate-limiter');
 
 const app = express(); //creates express server
 
@@ -13,6 +14,8 @@ const app = express(); //creates express server
 app.set('trust proxy', 1);
 
 app.use( cors({ origin: ALLOWED_ORIGINS }) );// cors configuration
+
+app.use(createRateLimiter(100, 60 * 1000, 'Demasiadas solicitudes. Intenta de nuevo en un minuto.'));
 
 //Carpeta publica
 app.use( express. static ('public'));

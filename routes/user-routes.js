@@ -24,7 +24,5 @@ router.post('/',
 ]
  ,createUser);
 
- TODO: /* add the validarJWT middleware to update (put) and delete user */
-
 
 module.exports = router;

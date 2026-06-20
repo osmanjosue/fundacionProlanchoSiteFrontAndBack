@@ -11,6 +11,7 @@
  * se desincronicen.
  */
 const ALLOWED_ORIGINS = [
+    'http://localhost:4200',   // Angular dev server (default)
     'http://localhost:5173',
     'http://localhost:3000',
     'https://drafrancisherrera.com',
