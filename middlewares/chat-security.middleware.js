@@ -15,6 +15,7 @@
 
 const { ALLOWED_ORIGINS } = require('../config/allowed-origins');
 const { createRateLimiter } = require('./rate-limiter');
+const { RATE_LIMITS } = require('../config/rate-limits');
 
 // Eventos validos: deben coincidir con el contrato del frontend (chatCore.ts).
 const VALID_EVENTS = ['session_start', 'message', 'escalation_request'];
@@ -27,7 +28,7 @@ const MAX_BODY_BYTES = 10 * 1024;  // 10 KB
  * disparada (cada mensaje implica una llamada al modelo). El limite es holgado
  * para un humano (una persona no escribe 50 mensajes en 5 min) pero corta bots.
  */
-const chatRateLimiter = createRateLimiter(50, 5 * 60 * 1000, 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.');
+const chatRateLimiter = createRateLimiter(RATE_LIMITS.chat.max, RATE_LIMITS.chat.windowMs, RATE_LIMITS.chat.message);
 
 /**
  * 2) Verificacion de origen del lado servidor (defensa en profundidad).

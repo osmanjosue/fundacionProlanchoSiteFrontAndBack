@@ -6,9 +6,11 @@ const { check } = require('express-validator');
 const { validarCampos } = require('../middlewares/validar-campos');
 const { validarJWT } = require('../middlewares/validar-jwt');
 const { createRateLimiter } = require('../middlewares/rate-limiter');
+const { asyncHandler } = require('../middlewares/async-handler');
+const { RATE_LIMITS } = require('../config/rate-limits');
 const router = Router();
 
-const loginRateLimiter = createRateLimiter(3, 60 * 1000, 'Demasiados intentos de inicio de sesión. Intenta de nuevo en un minuto.');
+const loginRateLimiter = createRateLimiter(RATE_LIMITS.login.max, RATE_LIMITS.login.windowMs, RATE_LIMITS.login.message);
 
 router.post('/',
     [
@@ -17,12 +19,12 @@ router.post('/',
         check('password', 'La contraseña es requerida para poder ingresar').notEmpty(),
         validarCampos
     ],
-    loginUser)
+    asyncHandler(loginUser))
 
 router.get(
     '/renew',
     validarJWT,
-    renewToken
+    asyncHandler(renewToken)
     )
 
 module.exports = router;

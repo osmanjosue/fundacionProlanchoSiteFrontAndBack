@@ -1,5 +1,4 @@
 const nodemailer = require('nodemailer')
-require('dotenv').config();
 
 /* interface SendMailOptions {
     to: string;
@@ -12,14 +11,16 @@ const transporter = nodemailer.createTransport({
     // Eliminamos 'service' para que Nodemailer obedezca estrictamente al host y puerto manual
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, 
+    secure: false,
     auth: {
         user: process.env.MAILER_EMAIL,
         pass: process.env.MAILER_SECRET_KEY,
     },
     tls: {
         family: 4, // <-- Esto obliga a Node a usar IPv4, solucionando el problema del VPS
-        rejectUnauthorized: false // Evita problemas de certificados estrictos en linux
+        // Por defecto se validan los certificados (seguro). Solo si el VPS lo exige,
+        // setear MAILER_TLS_REJECT_UNAUTHORIZED=false en el .env.
+        rejectUnauthorized: process.env.MAILER_TLS_REJECT_UNAUTHORIZED !== 'false',
     }
 })
 

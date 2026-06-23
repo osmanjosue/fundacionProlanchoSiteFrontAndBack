@@ -12,10 +12,11 @@ const { getArticles,
 } = require('../controllers/articles-controllers');
 
 const { validarJWT } = require('../middlewares/validar-jwt');
+const { asyncHandler } = require('../middlewares/async-handler');
 
 const router = Router();
 
-router.get('/', getArticles);
+router.get('/', asyncHandler(getArticles));
 
 router.post('/',
     [
@@ -28,14 +29,14 @@ router.post('/',
         check('published', 'Es necesario saber si se publica o no').notEmpty(),
         validarCampos,
     ]
-    , createArticle);
+    , asyncHandler(createArticle));
 
 router.put(
     '/:id',
     [
         validarJWT
     ],
-    actualizarArticulo
+    asyncHandler(actualizarArticulo)
 );
 
 router.delete(
@@ -43,7 +44,7 @@ router.delete(
     [
         validarJWT,
     ],
-    deleteArticle,
+    asyncHandler(deleteArticle),
 );
 
 module.exports = router;

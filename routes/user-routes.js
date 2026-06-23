@@ -8,10 +8,12 @@ const { validarCampos } = require('../middlewares/validar-campos')
 
 const {getUsers, createUser} = require('../controllers/users-controllers');
 const { validarJWT } = require('../middlewares/validar-jwt');
+const { validarAdmin } = require('../middlewares/validar-admin');
+const { asyncHandler } = require('../middlewares/async-handler');
 
 const router = Router();
 
-router.get('/',validarJWT, getUsers );
+router.get('/',validarJWT, asyncHandler(getUsers) );
 
 router.post('/',
 [
@@ -19,10 +21,11 @@ router.post('/',
     check('password', 'Es necesaria una contraseña').notEmpty(),
     // check('role', 'No sabemos si es admin o user').notEmpty(),  //quitamos esta validacion porque en el modelo viene un valor default: "USER_ROLE"
     validarJWT,
+    validarAdmin,
     validarCampos,
 
 ]
- ,createUser);
+ ,asyncHandler(createUser));
 
 
 module.exports = router;

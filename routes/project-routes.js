@@ -7,12 +7,13 @@ const { check } = require('express-validator');
 const { validarCampos } = require('../middlewares/validar-campos');
 const { createProject, getProjects, editProject, deleteProject } = require('../controllers/projects-controllers');
 const { validarJWT } = require('../middlewares/validar-jwt');
+const { asyncHandler } = require('../middlewares/async-handler');
 
 const router = Router();
 
 router.get('/',
 [],
-getProjects);
+asyncHandler(getProjects));
 
 router.post('/',
     [
@@ -20,7 +21,7 @@ router.post('/',
         check('projectName', 'Es necesario el nombre del proyecto').notEmpty(),
         validarCampos
     ],
-    createProject);
+    asyncHandler(createProject));
 
 router.put(
     '/:id',
@@ -29,7 +30,7 @@ router.put(
         check('projectName', 'Es necesario el nombre del proyecto').notEmpty(),
         validarCampos
     ],
-    editProject,
+    asyncHandler(editProject),
 );
 
 router.delete(
@@ -39,7 +40,7 @@ router.delete(
         // check('projectName', 'Es necesario el nombre del proyecto').notEmpty(),
         validarCampos
     ],
-    deleteProject,
+    asyncHandler(deleteProject),
 );
 
 module.exports = router;

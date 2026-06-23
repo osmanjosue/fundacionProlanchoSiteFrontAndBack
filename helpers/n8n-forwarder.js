@@ -1,4 +1,5 @@
 const { response } = require('express');
+const { sendError } = require('./responses');
 
 const createN8nForwarder = (webhookEnvVar) => {
     return async (req, res = response) => {
@@ -15,19 +16,14 @@ const createN8nForwarder = (webhookEnvVar) => {
             const data = await result.json();
 
             if (!result.ok) {
-                return res.status(502).json({
-                    ok: false,
-                    msg: 'El servicio externo no está disponible.',
-                });
+                return sendError(res, 502, 'El servicio externo no está disponible.');
             }
 
+            // Se reenvía la respuesta de n8n tal cual (contrato definido por n8n).
             res.json(data);
         } catch (error) {
             console.log(error);
-            res.status(500).json({
-                ok: false,
-                msg: 'Error al contactar el servicio.',
-            });
+            sendError(res, 500, 'Error al contactar el servicio.');
         }
     };
 };

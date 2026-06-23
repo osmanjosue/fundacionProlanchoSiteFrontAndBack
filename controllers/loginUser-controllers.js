@@ -3,69 +3,40 @@ const User = require('../models/user-model');
 const bcrypt = require('bcryptjs');
 const { generarJWT } = require('../helpers/jwt');
 const { getMenuFrontEnd } = require('../helpers/menu-frontEnd');
+const { sendOk, sendError } = require('../helpers/responses');
 
 const loginUser = async (req, res = response) => {
-
     const { name, password } = req.body;
 
-    try {
-
-        const userDB = await User.findOne({ name });
-        if (!userDB) {
-            return res.status(404).json({
-                ok: false,
-                msg: 'Uno de los campos es invalido'
-            })
-        }
-
-        //verify password
-
-        const validPassword = bcrypt.compareSync(password, userDB.password)
-
-        if (!validPassword) {
-            return res.status(400).json({
-                ok: false,
-                msg: 'Uno de los campos es invalido'
-            })
-        }
-
-        //Generar el TOKEN - JWT
-        const token = await generarJWT(userDB._id);
-
-        res.json({
-            ok: true,
-            token,
-            menu: getMenuFrontEnd(),
-        })
-
-
-
-    } catch (error) {
-        console.log(error);
-        res.status(500).json({
-            ok: false,
-            msg: 'Hable con el administrador'
-        })
+    const userDB = await User.findOne({ name });
+    if (!userDB) {
+        return sendError(res, 404, 'Uno de los campos es invalido');
     }
-}
+
+    const validPassword = bcrypt.compareSync(password, userDB.password);
+    if (!validPassword) {
+        return sendError(res, 400, 'Uno de los campos es invalido');
+    }
+
+    const token = await generarJWT(userDB._id);
+
+    sendOk(res, {
+        token,
+        menu: getMenuFrontEnd(),
+    });
+};
 
 const renewToken = async (req, res = response) => {
-
     const uid = req.uid;
-
-    //Generar el TOKEN - JWT
     const token = await generarJWT(uid);
 
-    res.json({
-        ok: true,
+    sendOk(res, {
         token,
-        menu: getMenuFrontEnd()
-
-    })
-
-}
+        menu: getMenuFrontEnd(),
+    });
+};
 
 module.exports = {
     loginUser,
-    renewToken
-}
+    renewToken,
+};

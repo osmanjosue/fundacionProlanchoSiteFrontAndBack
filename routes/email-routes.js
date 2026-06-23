@@ -3,10 +3,12 @@ const { check } = require("express-validator");
 const { validarCampos } = require("../middlewares/validar-campos");
 const { sendEmailController } = require("../controllers/email.controllers");
 const { createRateLimiter } = require("../middlewares/rate-limiter");
+const { asyncHandler } = require("../middlewares/async-handler");
+const { RATE_LIMITS } = require("../config/rate-limits");
 
 const router = Router();
 
-const emailRateLimiter = createRateLimiter(5, 60 * 1000, 'Demasiados correos enviados. Intenta de nuevo en un minuto.');
+const emailRateLimiter = createRateLimiter(RATE_LIMITS.email.max, RATE_LIMITS.email.windowMs, RATE_LIMITS.email.message);
 
 router.post('/',
     [
@@ -17,7 +19,7 @@ router.post('/',
         check('html', 'El cuerpo html es necesario').notEmpty(),
         validarCampos,
     ],
-    sendEmailController,
+    asyncHandler(sendEmailController),
 );
 
 module.exports = router;

@@ -6,6 +6,8 @@ const path = require ('path');
 const { dbConnection } = require('./database/config')
 const { ALLOWED_ORIGINS } = require('./config/allowed-origins');
 const { createRateLimiter } = require('./middlewares/rate-limiter');
+const { RATE_LIMITS } = require('./config/rate-limits');
+const { errorHandler } = require('./middlewares/error-handler');
 
 const app = express(); //creates express server
 
@@ -15,7 +17,7 @@ app.set('trust proxy', 1);
 
 app.use( cors({ origin: ALLOWED_ORIGINS }) );// cors configuration
 
-app.use(createRateLimiter(100, 60 * 1000, 'Demasiadas solicitudes. Intenta de nuevo en un minuto.'));
+app.use(createRateLimiter(RATE_LIMITS.global.max, RATE_LIMITS.global.windowMs, RATE_LIMITS.global.message));
 
 //Carpeta publica
 app.use( express. static ('public'));
@@ -45,6 +47,10 @@ app.use( '/api/email', require('./routes/email-routes') );
 app.get('*', (req, res) => {
     res.sendFile( path.resolve( __dirname, 'public/index.html' ) );
 });
+
+// Manejador de errores global: captura lo que los controllers envían a next(err).
+// Debe ir DESPUÉS de todas las rutas.
+app.use(errorHandler);
 
 app.listen(process.env.PORT, ()=>{
     console.log(('servidor corriendo en puerto ' + process.env.PORT));

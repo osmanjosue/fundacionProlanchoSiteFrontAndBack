@@ -4,7 +4,7 @@
   "description": "All the necessary technologies to implement the backend for FundacionProlancho site.",
   "main": "index.js",
   "scripts": {
-    "start: dev": "nodemon index.js",
+    "dev": "nodemon index.js",
     "start": "node index.js"
   },
   "keywords": [],
