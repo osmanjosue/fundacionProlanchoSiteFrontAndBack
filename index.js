@@ -27,6 +27,7 @@ app.use( express. static ('public'));
 // propio parser, por lo que el json global de abajo no la vuelve a parsear.
 app.use( '/api/webhook_chatbot_drafrancisherrera', require('./routes/webhook_chatbot_drafrancisherrera-routes') );
 app.use( '/api/webhook_booking_drafrancisherrera', require('./routes/webhook_booking_drafrancisherrera-routes') );
+app.use( '/api/drafrancisherrera_email', require('./routes/drafrancisherrera_email_routes') );
 
 app.use( express.json() ) // para leer el body, sin esto no funcionaria el post
 
