@@ -9,7 +9,9 @@ cloudinary.config({
 });
 
 // Ahora la función acepta el buffer y el nombre del archivo
-const cloudinaryUpload = async (fileBuffer, fileName) => {
+// extraOptions es opcional: si no se pasa, el comportamiento es igual que antes (retrocompatible).
+// Sirve para que otros llamadores (ej. currículos) puedan pisar el folder o agregar resource_type: 'raw'.
+const cloudinaryUpload = async (fileBuffer, fileName, extraOptions = {}) => {
     try {
         // Extraemos solo el UUID eliminando el '.jpg' o '.png' para el public_id
         const publicIdClean = fileName.split('.').at(0);
@@ -18,6 +20,7 @@ const cloudinaryUpload = async (fileBuffer, fileName) => {
             public_id: publicIdClean, // Forzamos a Cloudinary a usar nuestro UUID
             overwrite: true,
             folder: 'uploads',
+            ...extraOptions, // se fusiona al final para poder sobreescribir los valores de arriba
         };
 
         const result = await new Promise((resolve, reject) => {

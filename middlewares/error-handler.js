@@ -8,6 +8,12 @@ const { sendError } = require('../helpers/responses');
 // eslint-disable-next-line no-unused-vars
 const errorHandler = (err, req, res, next) => {
     console.log(err);
+
+    // Error de índice único de Mongo (ej. numeroDocumento duplicado)
+    if (err.code === 11000) {
+        return sendError(res, 400, 'Ya existe un registro con ese valor único');
+    }
+
     const status = err.statusCode || 500;
     const msg = err.message || 'Error interno del servidor';
     return sendError(res, status, msg);
