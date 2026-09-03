@@ -21,7 +21,7 @@ const curriculoUploadMiddleware = (req, res = response, next) => {
         });
     }
 
-    if (!TIPOS_CURRICULO.includes(curriculo.mimetype)) {
+    if (!Object.keys(TIPOS_CURRICULO).includes(curriculo.mimetype)) {
         return res.status(400).json({
             ok: false,
             msg: 'El curriculo debe ser un archivo PDF o Word (.docx)'

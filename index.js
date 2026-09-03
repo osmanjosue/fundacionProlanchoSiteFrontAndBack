@@ -39,6 +39,7 @@ app.use( '/api/articles', require('./routes/articles-routes'));
 app.use( '/api/users', require('./routes/user-routes'));
 app.use( '/api/projects', require ('./routes/project-routes'));
 app.use( '/api/uploads', require ('./routes/uploads-routes'));
+app.use('/api/talento', require('./routes/talento-routes'));
 app.use( '/api/email', require('./routes/email-routes') );
 // La ruta '/api/webhook_chatbot_drafrancisherrera' se monta arriba, antes del
 // express.json() global, para aplicarle su propio límite de tamaño de body.
