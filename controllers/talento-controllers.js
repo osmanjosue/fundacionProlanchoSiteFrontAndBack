@@ -1,7 +1,7 @@
 const Talento = require('../models/talento-model');
 const { uploadCurriculo, deleteCurriculo } = require('../helpers/uploadCurriculo');
 const { sendOk, sendError } = require('../helpers/responses');
-const { MAX_LIMITE_LISTADO } = require('../config/talento-listas');
+const { MAX_LIMITE_LISTADO, ESTADOS_TALENTO } = require('../config/talento-listas');
 
 /**
  * Mongoose interpreta `doc.campo = undefined` como un $unset. Al re-postular sin
@@ -16,7 +16,7 @@ const actualizarTalento = async (talento, datosPersonales, area, fileName, url) 
     talento.nombreArchivoCV = fileName;
     talento.urlCV = url;
     talento.areasInteres.push({ area, fecha: new Date() });
-    talento.estado = 'nuevo';
+    talento.estado = ESTADOS_TALENTO[0];
     await talento.save();
     return talento;
 };
@@ -73,10 +73,14 @@ const listarPostulaciones = async (req, res) => {
     const limite = Math.min(Math.max(1, parseInt(req.query.limit) || 10), MAX_LIMITE_LISTADO);
     const skip = (pagina - 1) * limite;
 
+    // ?estado= filtra la bandeja del panel (ej. ver solo las pendientes).
+    // El valor ya viene validado contra ESTADOS_TALENTO en la ruta.
+    const filtro = req.query.estado ? { estado: req.query.estado } : {};
+
     const [postulaciones, total] = await Promise.all([
         // Sin sort, skip/limit puede repetir u omitir registros entre páginas.
-        Talento.find().sort({ createdAt: -1 }).skip(skip).limit(limite),
-        Talento.countDocuments(),
+        Talento.find(filtro).sort({ createdAt: -1 }).skip(skip).limit(limite),
+        Talento.countDocuments(filtro),
     ]);
 
     return sendOk(res, {
@@ -102,8 +106,30 @@ const verPostulacion = async (req, res) => {
     return sendOk(res, { talento }, 200);
 };
 
+/**
+ * Marca el seguimiento que hace la fundación sobre una postulación
+ * (nuevo -> revisado / descartado). No toca el resto del documento.
+ */
+const cambiarEstadoPostulacion = async (req, res) => {
+    const { id } = req.params;
+    const { estado } = req.body;
+
+    const talento = await Talento.findByIdAndUpdate(
+        id,
+        { estado },
+        { new: true, runValidators: true },
+    );
+
+    if (!talento) {
+        return sendError(res, 404, 'Postulación no encontrada');
+    }
+
+    return sendOk(res, { talento }, 200);
+};
+
 module.exports = {
     crearPostulacion,
     listarPostulaciones,
     verPostulacion,
+    cambiarEstadoPostulacion,
 };

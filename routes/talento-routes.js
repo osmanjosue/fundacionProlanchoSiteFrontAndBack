@@ -10,8 +10,8 @@ const { curriculoUploadMiddleware } = require('../middlewares/curriculo-upload.m
 const { asyncHandler } = require('../middlewares/async-handler');
 const { createRateLimiter } = require('../middlewares/rate-limiter');
 const { RATE_LIMITS } = require('../config/rate-limits');
-const { NIVELES_EDUCATIVOS, AREAS_INTERES, MAX_CURRICULO_SIZE } = require('../config/talento-listas');
-const { crearPostulacion, listarPostulaciones, verPostulacion } = require('../controllers/talento-controllers');
+const { NIVELES_EDUCATIVOS, AREAS_INTERES, ESTADOS_TALENTO, MAX_CURRICULO_SIZE } = require('../config/talento-listas');
+const { crearPostulacion, listarPostulaciones, verPostulacion, cambiarEstadoPostulacion } = require('../controllers/talento-controllers');
 
 const router = Router();
 
@@ -45,7 +45,16 @@ router.post(
 );
 
 // Los listados exponen datos personales y CVs de terceros: solo administrador.
-router.get('/', [validarJWT, validarAdmin], asyncHandler(listarPostulaciones));
+router.get(
+    '/',
+    [
+        validarJWT,
+        validarAdmin,
+        check('estado', 'Estado no válido').optional().isIn(ESTADOS_TALENTO),
+        validarCampos,
+    ],
+    asyncHandler(listarPostulaciones)
+);
 
 router.get(
     '/:id',
@@ -56,6 +65,19 @@ router.get(
         validarCampos,
     ],
     asyncHandler(verPostulacion)
+);
+
+// Seguimiento del panel: marcar una postulación como revisada o descartada.
+router.patch(
+    '/:id/estado',
+    [
+        validarJWT,
+        validarAdmin,
+        check('id', 'El id no es válido').isMongoId(),
+        check('estado', 'Estado no válido').isIn(ESTADOS_TALENTO),
+        validarCampos,
+    ],
+    asyncHandler(cambiarEstadoPostulacion)
 );
 
 module.exports = router;

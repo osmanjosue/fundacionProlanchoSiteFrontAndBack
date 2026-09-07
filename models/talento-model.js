@@ -1,5 +1,5 @@
 const { Schema, model } = require('mongoose');
-const { NIVELES_EDUCATIVOS, AREAS_INTERES } = require('../config/talento-listas');
+const { NIVELES_EDUCATIVOS, AREAS_INTERES, ESTADOS_TALENTO } = require('../config/talento-listas');
 
 const TalentoSchema = new Schema({
     nombreCompleto: {
@@ -62,8 +62,9 @@ const TalentoSchema = new Schema({
     },
     estado: {
         type: String,
-        enum: ['nuevo', 'revisado', 'descartado'],
-        default: 'nuevo',
+        enum: ESTADOS_TALENTO,
+        default: ESTADOS_TALENTO[0],
+        index: true,
     },
     areasInteres: [{
         area: {

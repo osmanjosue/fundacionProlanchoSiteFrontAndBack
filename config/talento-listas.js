@@ -23,6 +23,9 @@ const MAX_CURRICULO_SIZE = 5 * 1024 * 1024; // 5MB
 // Carpeta de Cloudinary donde viven los currículos (separada de 'uploads').
 const CARPETA_CURRICULOS = 'curriculos';
 
+// Estados del seguimiento que hace la fundación sobre cada postulación.
+const ESTADOS_TALENTO = ['nuevo', 'revisado', 'descartado'];
+
 // Techo del ?limit= del listado, para que nadie vuelque la colección completa.
 const MAX_LIMITE_LISTADO = 50;
 
@@ -30,6 +33,7 @@ module.exports = {
     TIPOS_CURRICULO,
     NIVELES_EDUCATIVOS,
     AREAS_INTERES,
+    ESTADOS_TALENTO,
     MAX_CURRICULO_SIZE,
     CARPETA_CURRICULOS,
     MAX_LIMITE_LISTADO,
