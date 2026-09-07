@@ -6,23 +6,29 @@ const TalentoSchema = new Schema({
         type: String,
         required: true,
         minlength: 3,
+        trim: true,
     },
     numeroDocumento: {
         type: String,
         required: true,
         unique: true,
+        trim: true,
     },
     email: {
         type: String,
         required: true,
+        trim: true,
+        lowercase: true,
     },
     telefono: {
         type: String,
         required: true,
+        trim: true,
     },
     ciudad: {
         type: String,
         required: true,
+        trim: true,
     },
     nivelEducativo: {
         type: String,

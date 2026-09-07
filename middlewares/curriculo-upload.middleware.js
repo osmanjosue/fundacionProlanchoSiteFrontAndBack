@@ -1,41 +1,31 @@
 const { response } = require('express');
-const { TIPOS_CURRICULO } = require('../config/talento-listas');
-
-const MAX_CURRICULO_SIZE = 5 * 1024 * 1024; // 5MB
+const { sendError } = require('../helpers/responses');
+const { TIPOS_CURRICULO, MAX_CURRICULO_SIZE } = require('../config/talento-listas');
 
 const curriculoUploadMiddleware = (req, res = response, next) => {
     if (!req.files || Object.keys(req.files).length === 0 || !req.files.curriculo) {
-        return res.status(400).json({
-            ok: false,
-            msg: 'No se subio ningun archivo (curriculum)'
-        });
+        return sendError(res, 400, 'No se subio ningun archivo (curriculum)');
     }
 
     const curriculo = req.files.curriculo;
 
     //si es un array significa que has mas de un archivo, en este caso no se permite
     if (Array.isArray(curriculo)) {
-        return res.status(400).json({
-            ok: false,
-            msg: 'Solo se permite un archivo de curriculo'
-        });
+        return sendError(res, 400, 'Solo se permite un archivo de curriculo');
     }
 
     if (!Object.keys(TIPOS_CURRICULO).includes(curriculo.mimetype)) {
-        return res.status(400).json({
-            ok: false,
-            msg: 'El curriculo debe ser un archivo PDF o Word (.docx)'
-        });
+        return sendError(res, 400, 'El curriculo debe ser un archivo PDF o Word (.docx)');
     }
 
+    // Red de seguridad: normalmente el `abortOnLimit` de express-fileupload ya
+    // respondió 413 antes de llegar aquí, pero no dependemos de esa config.
     if (curriculo.size > MAX_CURRICULO_SIZE) {
-        return res.status(400).json({
-            ok: false,
-            msg: 'El curriculo no puede pesar mas de 5MB'
-        });
+        return sendError(res, 400, 'El curriculo no puede pesar mas de 5MB');
     }
 
-    req.body.files = curriculo;
+    // Fuera del body: el archivo no es un campo del formulario.
+    req.curriculo = curriculo;
 
     next();
 }

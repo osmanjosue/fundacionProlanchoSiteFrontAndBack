@@ -1,9 +1,18 @@
 const Talento = require('../models/talento-model');
-const { uploadCurriculo } = require('../helpers/uploadCurriculo');
+const { uploadCurriculo, deleteCurriculo } = require('../helpers/uploadCurriculo');
 const { sendOk, sendError } = require('../helpers/responses');
+const { MAX_LIMITE_LISTADO } = require('../config/talento-listas');
+
+/**
+ * Mongoose interpreta `doc.campo = undefined` como un $unset. Al re-postular sin
+ * enviar un campo opcional (ej. linkedinUrl) se borraría el valor anterior, así
+ * que solo copiamos las claves que realmente vinieron en la petición.
+ */
+const soloDefinidos = (objeto) =>
+    Object.fromEntries(Object.entries(objeto).filter(([, valor]) => valor !== undefined));
 
 const actualizarTalento = async (talento, datosPersonales, area, fileName, url) => {
-    Object.assign(talento, datosPersonales);
+    Object.assign(talento, soloDefinidos(datosPersonales));
     talento.nombreArchivoCV = fileName;
     talento.urlCV = url;
     talento.areasInteres.push({ area, fecha: new Date() });
@@ -14,7 +23,7 @@ const actualizarTalento = async (talento, datosPersonales, area, fileName, url) 
 
 const registrarTalento = async (datosPersonales, numeroDocumento, area, fileName, url) => {
     const nuevo = new Talento({
-        ...datosPersonales,
+        ...soloDefinidos(datosPersonales),
         numeroDocumento,
         nombreArchivoCV: fileName,
         urlCV: url,
@@ -34,24 +43,39 @@ const crearPostulacion = async (req, res) => {
         nivelEducativo, tituloProfesional, anosExperiencia,
         linkedinUrl, presentacion, aceptaTratamientoDatos,
     };
-    const { fileName, url } = await uploadCurriculo(req.body.files);
+
+    const { fileName, url } = await uploadCurriculo(req.curriculo);
     const existente = await Talento.findOne({ numeroDocumento });
+    const cvAnterior = existente?.nombreArchivoCV;
 
-    const talento = existente
-        ? await actualizarTalento(existente, datosPersonales, area, fileName, url)
-        : await registrarTalento(datosPersonales, numeroDocumento, area, fileName, url);
+    try {
+        existente
+            ? await actualizarTalento(existente, datosPersonales, area, fileName, url)
+            : await registrarTalento(datosPersonales, numeroDocumento, area, fileName, url);
+    } catch (error) {
+        // El archivo ya está en Cloudinary pero no quedó referenciado en Mongo.
+        await deleteCurriculo(fileName);
+        throw error;
+    }
 
-    // crearPostulacion
-    return sendOk(res, { talento }, existente ? 200 : 201);
+    // Solo cuando el guardado fue exitoso soltamos el CV que acaba de ser reemplazado.
+    if (cvAnterior && cvAnterior !== fileName) {
+        await deleteCurriculo(cvAnterior);
+    }
+
+    // Endpoint público y anónimo: NO devolvemos el documento. Si alguien envía el
+    // numeroDocumento de otra persona, la respuesta no puede revelarle sus datos.
+    return sendOk(res, { msg: 'Postulación recibida' }, existente ? 200 : 201);
 };
 
 const listarPostulaciones = async (req, res) => {
-    const pagina = parseInt(req.query.page) || 1;
-    const limite = parseInt(req.query.limit) || 10;
+    const pagina = Math.max(1, parseInt(req.query.page) || 1);
+    const limite = Math.min(Math.max(1, parseInt(req.query.limit) || 10), MAX_LIMITE_LISTADO);
     const skip = (pagina - 1) * limite;
 
     const [postulaciones, total] = await Promise.all([
-        Talento.find().skip(skip).limit(limite),
+        // Sin sort, skip/limit puede repetir u omitir registros entre páginas.
+        Talento.find().sort({ createdAt: -1 }).skip(skip).limit(limite),
         Talento.countDocuments(),
     ]);
 
@@ -60,6 +84,7 @@ const listarPostulaciones = async (req, res) => {
         paginacion: {
             total,
             pagina,
+            limite,
             totalPaginas: Math.ceil(total / limite),
         },
     }, 200);

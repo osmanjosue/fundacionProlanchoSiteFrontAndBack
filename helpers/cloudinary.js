@@ -33,18 +33,25 @@ const cloudinaryUpload = async (fileBuffer, fileName, extraOptions = {}) => {
         return result; // Retorna el objeto completo de Cloudinary de forma segura
     }
     catch (err) {
-        throw new Error(JSON.stringify(err));
+        // Logueamos el detalle del proveedor pero NO lo propagamos al cliente:
+        // el error-handler global usa err.message como `msg` de la respuesta.
+        console.error('Error subiendo a Cloudinary:', err);
+        const error = new Error('No se pudo subir el archivo. Intenta de nuevo mas tarde.');
+        error.statusCode = 502;
+        throw error;
     }
 }
 
 // Corregimos para que borre usando el nombre guardado en Mongo (ej: "uuid.jpg")
-const cloudinaryDelete = async (fileName) => {
+// `folder` y `resourceType` por defecto reproducen el comportamiento anterior;
+// los currículos viven en otra carpeta y se suben como 'raw'.
+const cloudinaryDelete = async (fileName, folder = 'uploads', resourceType = 'image') => {
     try {
         const publicIdClean = fileName.split('.').at(0);
         // Construimos la ruta exacta dentro de Cloudinary (ej: "uploads/tu-uuid")
-        const pathInCloudinary = `uploads/${publicIdClean}`; 
-        
-        const result = await cloudinary.uploader.destroy(pathInCloudinary);
+        const pathInCloudinary = `${folder}/${publicIdClean}`;
+
+        const result = await cloudinary.uploader.destroy(pathInCloudinary, { resource_type: resourceType });
         console.log("Resultado del borrado en Cloudinary:", result);
         return result;
     } catch (error) {

@@ -14,6 +14,12 @@ const errorHandler = (err, req, res, next) => {
         return sendError(res, 400, 'Ya existe un registro con ese valor único');
     }
 
+    // Datos que no pasaron el filtro de express-validator y rompieron en Mongoose:
+    // es culpa del cliente (400), no un fallo del servidor.
+    if (err.name === 'ValidationError' || err.name === 'CastError') {
+        return sendError(res, 400, 'Datos inválidos en la petición');
+    }
+
     const status = err.statusCode || 500;
     const msg = err.message || 'Error interno del servidor';
     return sendError(res, status, msg);
