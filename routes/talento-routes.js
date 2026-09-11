@@ -11,7 +11,8 @@ const { asyncHandler } = require('../middlewares/async-handler');
 const { createRateLimiter } = require('../middlewares/rate-limiter');
 const { RATE_LIMITS } = require('../config/rate-limits');
 const { NIVELES_EDUCATIVOS, AREAS_INTERES, ESTADOS_TALENTO, MAX_CURRICULO_SIZE } = require('../config/talento-listas');
-const { crearPostulacion, listarPostulaciones, verPostulacion, cambiarEstadoPostulacion } = require('../controllers/talento-controllers');
+const { crearPostulacion, listarPostulaciones, verPostulacion, cambiarEstadoPostulacion, verPostulacionPorMagicLink } = require('../controllers/talento-controllers');
+const { validarMagicLink } = require('../middlewares/validar-magic-link');
 
 const router = Router();
 
@@ -65,6 +66,17 @@ router.get(
         validarCampos,
     ],
     asyncHandler(verPostulacion)
+);
+
+// Acceso de solo lectura mediante Magic Link
+router.get(
+    '/magic/:id',
+    [
+        check('id', 'El id no es válido').isMongoId(),
+        validarCampos,
+        validarMagicLink,
+    ],
+    asyncHandler(verPostulacionPorMagicLink)
 );
 
 // Seguimiento del panel: marcar una postulación como revisada o descartada.

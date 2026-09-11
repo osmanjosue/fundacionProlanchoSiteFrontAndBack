@@ -12,8 +12,14 @@ const validarJWT = (req, res, next) => {
 
     try {
 
-        const { uid } = jwt.verify( token, process.env.JWT_SECRET);
-        req.uid = uid;
+        const payload = jwt.verify( token, process.env.JWT_SECRET);
+        
+        // Evitar que tokens especiales (como los magic links) se usen como sesión
+        if (payload.type) {
+            throw new Error('Token de tipo incorrecto para esta ruta');
+        }
+
+        req.uid = payload.uid;
         next();
 
     } catch (error) {

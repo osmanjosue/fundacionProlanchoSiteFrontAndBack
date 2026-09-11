@@ -3,6 +3,7 @@ const { uploadCurriculo, deleteCurriculo } = require('../helpers/uploadCurriculo
 const { sendOk, sendError } = require('../helpers/responses');
 const { MAX_LIMITE_LISTADO, ESTADOS_TALENTO } = require('../config/talento-listas');
 const { enviarAvisoFundacion, enviarAcusePostulante } = require('../helpers/talento-email.helper');
+const { generarMagicLinkToken } = require('../helpers/jwt-magic-link');
 
 /**
  * Mongoose interpreta `doc.campo = undefined` como un $unset. Al re-postular sin
@@ -65,10 +66,18 @@ const crearPostulacion = async (req, res) => {
         await deleteCurriculo(cvAnterior);
     }
 
+    // Generar el token mágico para el enlace del correo
+    let magicToken = null;
+    try {
+        magicToken = await generarMagicLinkToken(postulacionGuardada._id);
+    } catch (error) {
+        console.error('Error generando magic link:', error);
+    }
+
     // Fire-and-forget: si falla el correo, la postulación ya está en MongoDB.
-    // Un fallo de SMTP nunca debe tumbar la petición (regla de oro, Fase A5).
-    enviarAvisoFundacion(postulacionGuardada)
+    enviarAvisoFundacion(postulacionGuardada, magicToken)
         .catch((err) => console.error('Correo aviso fundación falló:', err));
+        
     enviarAcusePostulante(email, nombreCompleto)
         .catch((err) => console.error('Correo acuse postulante falló:', err));
 
@@ -136,9 +145,27 @@ const cambiarEstadoPostulacion = async (req, res) => {
     return sendOk(res, { talento }, 200);
 };
 
+/**
+ * Controlador para la ruta pública protegida con Magic Link.
+ * Devuelve la postulación validada por el middleware.
+ */
+const verPostulacionPorMagicLink = async (req, res) => {
+    // El ID viene en la URL y ya fue validado por el middleware (req.magicPayload.uid)
+    const { id } = req.params;
+
+    const talento = await Talento.findById(id);
+
+    if (!talento) {
+        return sendError(res, 404, 'Postulación no encontrada');
+    }
+
+    return sendOk(res, { talento }, 200);
+};
+
 module.exports = {
     crearPostulacion,
     listarPostulaciones,
     verPostulacion,
     cambiarEstadoPostulacion,
+    verPostulacionPorMagicLink,
 };

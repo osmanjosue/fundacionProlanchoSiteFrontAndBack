@@ -73,13 +73,21 @@ const formatearFecha = (fecha) => {
  * la postulación y un enlace directo al CV en Cloudinary.
  *
  * @param {Object} postulacion  Documento Mongoose de Talento (ya guardado).
+ * @param {string} magicToken   JWT para acceder a la vista de solo lectura.
  * @returns {Promise<Object|false>}
  */
-const enviarAvisoFundacion = async (postulacion) => {
+const enviarAvisoFundacion = async (postulacion, magicToken) => {
     if (!TALENTO_RECIPIENTS.length) {
         console.warn('TALENTO_CONTACT_TO no está configurado. No se enviará aviso de postulación.');
         return false;
     }
+
+    if (!process.env.FRONTEND_URL) {
+        console.warn('FRONTEND_URL no está configurado en .env. Se usará http://localhost:4200 por defecto, pero los enlaces fallarán en producción.');
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+    const magicLinkUrl = magicToken ? `${frontendUrl}/talento/revisar/${postulacion._id}?token=${magicToken}` : null;
 
     const areaActual = postulacion.areasInteres.at(-1);
     const esRepostulacion = postulacion.areasInteres.length > 1;
@@ -158,11 +166,21 @@ const enviarAvisoFundacion = async (postulacion) => {
             <p style="margin: 0; font-size: 14px; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(postulacion.presentacion)}</p>
         </div>` : ''}
 
+        ${magicToken ? `
+        <div style="margin: 20px 0; text-align: center;">
+            <a href="${escapeHtml(magicLinkUrl)}" target="_blank" rel="noopener"
+               style="display: inline-block; padding: 14px 28px; background: #2c6b4f; color: #fff;
+                      text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px; margin-bottom: 10px;">
+                🔗 Ver Postulación Completa
+            </a>
+            <p style="margin: 0; font-size: 12px; color: #777;">El enlace expira en 48 horas.</p>
+        </div>` : ''}
+
         <div style="margin: 20px 0; text-align: center;">
             <a href="${escapeHtml(postulacion.urlCV)}" target="_blank" rel="noopener"
-               style="display: inline-block; padding: 12px 28px; background: #2c6b4f; color: #fff;
-                      text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px;">
-                📄 Ver hoja de vida (CV)
+               style="display: inline-block; padding: 8px 16px; background: #e9ecef; color: #555;
+                      text-decoration: none; border-radius: 6px; font-weight: 500; font-size: 13px;">
+                📄 Descargar CV original (PDF)
             </a>
         </div>
 
