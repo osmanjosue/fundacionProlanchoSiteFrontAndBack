@@ -2,6 +2,7 @@ const Talento = require('../models/talento-model');
 const { uploadCurriculo, deleteCurriculo } = require('../helpers/uploadCurriculo');
 const { sendOk, sendError } = require('../helpers/responses');
 const { MAX_LIMITE_LISTADO, ESTADOS_TALENTO } = require('../config/talento-listas');
+const { enviarAvisoFundacion, enviarAcusePostulante } = require('../helpers/talento-email.helper');
 
 /**
  * Mongoose interpreta `doc.campo = undefined` como un $unset. Al re-postular sin
@@ -48,8 +49,9 @@ const crearPostulacion = async (req, res) => {
     const existente = await Talento.findOne({ numeroDocumento });
     const cvAnterior = existente?.nombreArchivoCV;
 
+    let postulacionGuardada;
     try {
-        existente
+        postulacionGuardada = existente
             ? await actualizarTalento(existente, datosPersonales, area, fileName, url)
             : await registrarTalento(datosPersonales, numeroDocumento, area, fileName, url);
     } catch (error) {
@@ -62,6 +64,13 @@ const crearPostulacion = async (req, res) => {
     if (cvAnterior && cvAnterior !== fileName) {
         await deleteCurriculo(cvAnterior);
     }
+
+    // Fire-and-forget: si falla el correo, la postulación ya está en MongoDB.
+    // Un fallo de SMTP nunca debe tumbar la petición (regla de oro, Fase A5).
+    enviarAvisoFundacion(postulacionGuardada)
+        .catch((err) => console.error('Correo aviso fundación falló:', err));
+    enviarAcusePostulante(email, nombreCompleto)
+        .catch((err) => console.error('Correo acuse postulante falló:', err));
 
     // Endpoint público y anónimo: NO devolvemos el documento. Si alguien envía el
     // numeroDocumento de otra persona, la respuesta no puede revelarle sus datos.
