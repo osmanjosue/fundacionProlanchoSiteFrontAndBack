@@ -245,4 +245,60 @@ const enviarAcusePostulante = async (email, nombre) => {
     });
 };
 
-module.exports = { enviarAvisoFundacion, enviarAcusePostulante };
+// ── Correo 3: acceso al directorio ─────────────────────────────────────
+
+/**
+ * Envía el enlace mágico para acceder al directorio de talento.
+ *
+ * @param {string} email Correo del destinatario
+ * @param {string} token JWT de acceso-lector
+ * @returns {Promise<Object|false>}
+ */
+const enviarAccesoDirectorio = async (email, token) => {
+    if (!process.env.FRONTEND_URL) {
+        console.warn('FRONTEND_URL no está configurado en .env. Se usará http://localhost:4200 por defecto, pero los enlaces fallarán en producción.');
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:4200';
+    const magicLinkUrl = `${frontendUrl}/talento/entrar?token=${token}`;
+
+    const html = `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+        <div style="background: #2c6b4f; padding: 20px 24px; border-radius: 8px 8px 0 0;">
+            <h2 style="color: #fff; margin: 0; font-size: 20px;">Directorio de Talento</h2>
+        </div>
+
+        <div style="padding: 24px 16px;">
+            <p style="font-size: 15px; line-height: 1.6;">
+                Has solicitado acceso al directorio de talento de la Fundación Prolancho.
+            </p>
+            <p style="font-size: 15px; line-height: 1.6;">
+                Haz clic en el siguiente botón para entrar. Este enlace <strong>caduca en 15 minutos</strong>.
+            </p>
+
+            <div style="margin: 24px 0; text-align: center;">
+                <a href="${escapeHtml(magicLinkUrl)}" target="_blank" rel="noopener"
+                   style="display: inline-block; padding: 14px 28px; background: #2c6b4f; color: #fff;
+                          text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
+                    Acceder al Directorio
+                </a>
+            </div>
+
+            <p style="font-size: 14px; color: #666; line-height: 1.5; margin-top: 24px;">
+                Si tú no has solicitado este acceso, puedes ignorar este correo de forma segura.
+            </p>
+        </div>
+
+        <div style="padding: 12px 16px; background: #f8f9fa; border-radius: 0 0 8px 8px; font-size: 12px; color: #888; text-align: center;">
+            Este es un correo automático, por favor no respondas a este mensaje.
+        </div>
+    </div>`;
+
+    return sendEmail({
+        to: email,
+        subject: 'Acceso al directorio de talento — Fundación Prolancho',
+        html,
+    });
+};
+
+module.exports = { enviarAvisoFundacion, enviarAcusePostulante, enviarAccesoDirectorio };

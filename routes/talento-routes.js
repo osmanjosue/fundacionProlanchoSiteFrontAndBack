@@ -12,6 +12,7 @@ const { createRateLimiter } = require('../middlewares/rate-limiter');
 const { RATE_LIMITS } = require('../config/rate-limits');
 const { NIVELES_EDUCATIVOS, AREAS_INTERES, ESTADOS_TALENTO, MAX_CURRICULO_SIZE } = require('../config/talento-listas');
 const { crearPostulacion, listarPostulaciones, verPostulacion, cambiarEstadoPostulacion, verPostulacionPorMagicLink } = require('../controllers/talento-controllers');
+const { solicitarAcceso, canjearAcceso } = require('../controllers/talento-acceso-controllers');
 const { validarMagicLink } = require('../middlewares/validar-magic-link');
 
 const router = Router();
@@ -43,6 +44,27 @@ router.post(
         curriculoUploadMiddleware,
     ],
     asyncHandler(crearPostulacion)
+);
+
+// Acceso al directorio por enlace mágico (para lectores autorizados)
+router.post(
+    '/acceso',
+    [
+        createRateLimiter(RATE_LIMITS.talentoAcceso.max, RATE_LIMITS.talentoAcceso.windowMs, RATE_LIMITS.talentoAcceso.message),
+        check('email', 'El correo electrónico no es válido').trim().toLowerCase().isEmail(),
+        validarCampos
+    ],
+    asyncHandler(solicitarAcceso)
+);
+
+router.post(
+    '/acceso/canjear',
+    [
+        createRateLimiter(RATE_LIMITS.talentoAcceso.max, RATE_LIMITS.talentoAcceso.windowMs, RATE_LIMITS.talentoAcceso.message),
+        check('token', 'El token es obligatorio').trim().notEmpty(),
+        validarCampos
+    ],
+    asyncHandler(canjearAcceso)
 );
 
 // Los listados exponen datos personales y CVs de terceros: solo administrador.
