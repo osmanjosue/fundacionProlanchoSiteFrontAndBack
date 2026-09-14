@@ -51,14 +51,14 @@ const EXPIRACION_SESION = '8h';
 
 const generarTokenLectorBase = (email, tipo, expiracion) => {
     return new Promise((resolve, reject) => {
-        if (email === undefined || email === null || typeof email !== 'string' || email.trim() === '') {
-            return reject(`No se pudo generar el token de ${tipo}`);
+        if (typeof email !== 'string' || email.trim() === '') {
+            return reject('El correo es obligatorio para generar el token');
         }
         const payload = { email: email.trim().toLowerCase(), type: tipo };
         jwt.sign(payload, process.env.MAGIC_LINK_SECRET, { expiresIn: expiracion }, (err, token) => {
             if (err) {
-                console.error(err);
-                reject(`No se pudo generar el token de ${tipo}`);
+                console.error(`Error generando token de ${tipo}:`, err);
+                reject('No se pudo generar el token');
             } else {
                 resolve(token);
             }
