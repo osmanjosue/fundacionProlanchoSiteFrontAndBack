@@ -49,77 +49,59 @@ const verificarMagicLinkToken = (token) => {
 const EXPIRACION_ACCESO = '15m';
 const EXPIRACION_SESION = '8h';
 
-/**
- * Genera un token de enlace para el acceso por correo
- * @param {string} email - Correo del lector
- * @returns {Promise<string>} Token firmado
- */
-const generarTokenAccesoLector = (email) => {
+const generarTokenLectorBase = (email, tipo, expiracion) => {
     return new Promise((resolve, reject) => {
-        const payload = { email, type: 'acceso-lector' };
-        jwt.sign(payload, process.env.MAGIC_LINK_SECRET, { expiresIn: EXPIRACION_ACCESO }, (err, token) => {
+        const payload = { email: String(email).trim().toLowerCase(), type: tipo };
+        jwt.sign(payload, process.env.MAGIC_LINK_SECRET, { expiresIn: expiracion }, (err, token) => {
             if (err) {
                 console.error(err);
-                reject('No se pudo generar el token de acceso');
+                reject(`No se pudo generar el token de ${tipo}`);
             } else {
                 resolve(token);
             }
         });
     });
 };
+
+const verificarTokenLectorBase = (token, tipoEsperado) => {
+    try {
+        const payload = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
+        if (payload.type !== tipoEsperado) {
+            throw new Error('Tipo de token inválido');
+        }
+        return payload;
+    } catch (error) {
+        throw new Error(`Token de ${tipoEsperado} inválido o expirado`);
+    }
+};
+
+/**
+ * Genera un token de enlace para el acceso por correo
+ * @param {string} email - Correo del lector
+ * @returns {Promise<string>} Token firmado
+ */
+const generarTokenAccesoLector = (email) => generarTokenLectorBase(email, 'acceso-lector', EXPIRACION_ACCESO);
 
 /**
  * Verifica el token de enlace de correo
  * @param {string} token 
  * @returns {Object} Payload decodificado
  */
-const verificarTokenAccesoLector = (token) => {
-    try {
-        const payload = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
-        if (payload.type !== 'acceso-lector') {
-            throw new Error('Tipo de token inválido');
-        }
-        return payload;
-    } catch (error) {
-        throw new Error('Token de acceso inválido o expirado');
-    }
-};
+const verificarTokenAccesoLector = (token) => verificarTokenLectorBase(token, 'acceso-lector');
 
 /**
  * Genera el token de sesión (para la tabla)
  * @param {string} email - Correo del lector
  * @returns {Promise<string>} Token firmado
  */
-const generarTokenSesionLector = (email) => {
-    return new Promise((resolve, reject) => {
-        const payload = { email, type: 'sesion-lector' };
-        jwt.sign(payload, process.env.MAGIC_LINK_SECRET, { expiresIn: EXPIRACION_SESION }, (err, token) => {
-            if (err) {
-                console.error(err);
-                reject('No se pudo generar el token de sesión');
-            } else {
-                resolve(token);
-            }
-        });
-    });
-};
+const generarTokenSesionLector = (email) => generarTokenLectorBase(email, 'sesion-lector', EXPIRACION_SESION);
 
 /**
  * Verifica el token de sesión (del header)
  * @param {string} token 
  * @returns {Object} Payload decodificado
  */
-const verificarTokenSesionLector = (token) => {
-    try {
-        const payload = jwt.verify(token, process.env.MAGIC_LINK_SECRET);
-        if (payload.type !== 'sesion-lector') {
-            throw new Error('Tipo de token inválido');
-        }
-        return payload;
-    } catch (error) {
-        throw new Error('Token de sesión inválido o expirado');
-    }
-};
+const verificarTokenSesionLector = (token) => verificarTokenLectorBase(token, 'sesion-lector');
 
 
 module.exports = {

@@ -11,6 +11,10 @@ const LECTORES_AUTORIZADOS = (process.env.TALENTO_LECTORES || '')
     .map((addr) => addr.trim().toLowerCase())
     .filter(Boolean);
 
+if (LECTORES_AUTORIZADOS.length === 0) {
+    console.warn('TALENTO_LECTORES no está configurado o está vacío. Nadie podrá acceder al directorio de talento.');
+}
+
 /**
  * Comprueba si un correo está en la lista de lectores autorizados.
  *
