@@ -94,6 +94,8 @@ devuelve un token nuevo con la misma forma que el login.
 
 Requerido para leer datos (`GET /api/talento` y `GET /api/talento/:id`). Solo funciona para correos que el backend tenga registrados.
 
+Los límites de tasa son por IP: `/acceso` y `/acceso/canjear` tienen contadores separados de 5 peticiones cada 15 minutos cada uno.
+
 **Paso 1: Solicitar enlace mágico (sin auth)**
 ```
 POST /api/talento/acceso
@@ -101,9 +103,10 @@ Content-Type: application/json
 { "email": "talento@fundacion.org" }
 
 → 200 { "ok": true, "msg": "Si tu correo tiene acceso, recibirás un enlace en unos minutos." }
-→ 429 (máximo 5 intentos por 15 minutos)
+→ 400 { "ok": false, "errors": { "email": { "type": "field", "value": "invalido", "msg": "El correo electrónico no es válido", "path": "email", "location": "body" } } }
+→ 429 (máximo 5 intentos por 15 minutos por IP)
 ```
-La respuesta siempre es la misma, incluso si el correo no existe, para no revelar la lista. Si existe, la persona recibe un correo con un enlace mágico (`?token=...`).
+La respuesta 200 siempre es la misma, incluso si el correo no existe, para no revelar la lista. Si existe, la persona recibe un correo con un enlace mágico (`?token=...`).
 
 **Paso 2: Canjear el enlace por una sesión**
 ```
@@ -112,7 +115,10 @@ Content-Type: application/json
 { "token": "eyJ..." } // token de la URL
 
 → 200 { "ok": true, "msg": "Sesión iniciada correctamente", "email": "...", "token": "eyJ... (token de sesión)" }
+→ 400 { "ok": false, "errors": { "token": { "type": "field", "msg": "El token es obligatorio", "path": "token", "location": "body" } } }
 → 401 { "ok": false, "msg": "El enlace no es válido o ha caducado" }
+→ 500 { "ok": false, "msg": "No se pudo iniciar la sesión. Intenta de nuevo en unos minutos." }
+→ 429 (máximo 5 intentos por 15 minutos por IP)
 ```
 
 **Usar la sesión de lector:** header **`x-lector-token`**.
@@ -257,7 +263,7 @@ async function enviarPostulacion(valores, archivoCV) {
 
 ## 4. `GET /api/talento` — Listar postulaciones (directorio)
 
-Bandeja del panel administrativo. Requiere **`x-lector-token`**.
+Consulta del directorio de talento. Requiere **`x-lector-token`**.
 
 **Query params (todos opcionales):**
 
@@ -286,17 +292,18 @@ Nota: El filtro `area` busca en el historial completo (`areasInteres.area`). Inc
 }
 ```
 
-`paginacion.total` y `totalPaginas` respetan el filtro `?estado=`, así que el paginador se
+`paginacion.total` y `totalPaginas` respetan los filtros aplicados (`?estado=`, `?area=`), así que el paginador se
 puede construir directamente con esos valores sin recalcular nada.
 
-Ejemplos: `GET /api/talento?estado=nuevo&page=1&limit=20` (bandeja de pendientes),
-`GET /api/talento?page=2` (todas, segunda página).
+Ejemplos: `GET /api/talento?estado=nuevo&page=1&limit=20` (candidatos con estado nuevo en el directorio),
+`GET /api/talento?area=biologia` (candidatos con interés en biología),
+`GET /api/talento?page=2` (todos los candidatos, segunda página).
 
 ---
 
 ## 5. `GET /api/talento/:id` — Ver una postulación (directorio)
 
-Requiere **`x-lector-token`**. `:id` debe ser un ObjectId de Mongo válido (24 caracteres hexadecimales).
+Detalle de una postulación en el directorio de talento. Requiere **`x-lector-token`**. `:id` debe ser un ObjectId de Mongo válido (24 caracteres hexadecimales).
 
 ```jsonc
 // 200
@@ -412,7 +419,7 @@ Fechas: ISO 8601 UTC. Formatéalas en el cliente.
 | `POST /api/talento` | pública | `201` / `200` | `400`, `413`, `429`, `502`, `500` |
 | `GET /api/talento` | lector (`x-lector-token`) | `200` | `400`, `401`, `500` |
 | `GET /api/talento/:id` | lector (`x-lector-token`) | `200` | `400`, `401`, `404`, `500` |
-| `GET /api/talento/magic/:id` | `?token=` (magic link) | `200` | `400`, `401`, `404`, `500` |
+| `GET /api/talento/magic/:id` | header `x-magic-token` (también acepta `?token=`) | `200` | `400`, `401`, `404`, `500` |
 | `PATCH /api/talento/:id/estado` | admin (`x-token`) | `200` | `400`, `401`, `403`, `404`, `500` |
 
 `500 { ok:false, msg:"Error interno del servidor" }` es posible en cualquiera; muestra un

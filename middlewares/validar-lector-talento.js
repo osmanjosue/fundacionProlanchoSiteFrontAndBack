@@ -10,18 +10,19 @@ const validarLectorTalento = (req, res, next) => {
         return sendError(res, 401, msgError);
     }
 
+    let payload;
     try {
-        const payload = verificarTokenSesionLector(token);
-
-        if (!tieneAccesoLector(payload.email)) {
-            return sendError(res, 401, msgError);
-        }
-
-        req.lectorEmail = payload.email;
-        next();
+        payload = verificarTokenSesionLector(token);
     } catch (error) {
         return sendError(res, 401, msgError);
     }
+
+    if (!tieneAccesoLector(payload.email)) {
+        return sendError(res, 401, msgError);
+    }
+
+    req.lectorEmail = payload.email;
+    next();
 };
 
 module.exports = {
