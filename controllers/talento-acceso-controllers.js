@@ -28,15 +28,21 @@ const solicitarAcceso = async (req, res) => {
 
 const canjearAcceso = async (req, res) => {
     const { token } = req.body;
-    const msgError = 'El enlace no es válido o ha caducado';
+    const msgError401 = 'El enlace no es válido o ha caducado';
+    const msgError500 = 'No se pudo iniciar la sesión. Intenta de nuevo en unos minutos.';
+
+    let payload;
+    try {
+        payload = verificarTokenAccesoLector(token);
+    } catch (error) {
+        return sendError(res, 401, msgError401);
+    }
+
+    if (!tieneAccesoLector(payload.email)) {
+        return sendError(res, 401, msgError401);
+    }
 
     try {
-        const payload = verificarTokenAccesoLector(token);
-
-        if (!tieneAccesoLector(payload.email)) {
-            return sendError(res, 401, msgError);
-        }
-
         const tokenSesion = await generarTokenSesionLector(payload.email);
 
         return sendOk(res, {
@@ -45,7 +51,8 @@ const canjearAcceso = async (req, res) => {
             token: tokenSesion
         });
     } catch (error) {
-        return sendError(res, 401, msgError);
+        console.error('Error al generar token de sesión:', error);
+        return sendError(res, 500, msgError500);
     }
 };
 
