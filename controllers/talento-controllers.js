@@ -92,8 +92,17 @@ const listarPostulaciones = async (req, res) => {
     const skip = (pagina - 1) * limite;
 
     // ?estado= filtra la bandeja del panel (ej. ver solo las pendientes).
-    // El valor ya viene validado contra ESTADOS_TALENTO en la ruta.
-    const filtro = req.query.estado ? { estado: req.query.estado } : {};
+    // El valor ya viene validado contra ESTADOS_TALENTO y AREAS_INTERES en la ruta.
+    const filtro = {};
+    if (req.query.estado) {
+        filtro.estado = req.query.estado;
+    }
+    if (req.query.area) {
+        // Al filtrar por 'areasInteres.area', se incluye a cualquier persona que se haya
+        // postulado a esta área alguna vez, incluso si su postulación más reciente es a
+        // otra área distinta. Esto es intencionado para no perder candidatos.
+        filtro['areasInteres.area'] = req.query.area;
+    }
 
     const [postulaciones, total] = await Promise.all([
         // Sin sort, skip/limit puede repetir u omitir registros entre páginas.

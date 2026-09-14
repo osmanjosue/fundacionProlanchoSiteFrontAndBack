@@ -14,6 +14,7 @@ const { NIVELES_EDUCATIVOS, AREAS_INTERES, ESTADOS_TALENTO, MAX_CURRICULO_SIZE }
 const { crearPostulacion, listarPostulaciones, verPostulacion, cambiarEstadoPostulacion, verPostulacionPorMagicLink } = require('../controllers/talento-controllers');
 const { solicitarAcceso, canjearAcceso } = require('../controllers/talento-acceso-controllers');
 const { validarMagicLink } = require('../middlewares/validar-magic-link');
+const { validarLectorTalento } = require('../middlewares/validar-lector-talento');
 
 const router = Router();
 
@@ -67,13 +68,13 @@ router.post(
     asyncHandler(canjearAcceso)
 );
 
-// Los listados exponen datos personales y CVs de terceros: solo administrador.
+// Los listados exponen datos personales y CVs de terceros: protegidos por sesión de lector
 router.get(
     '/',
     [
-        validarJWT,
-        validarAdmin,
-        check('estado', 'Estado no válido').optional().isIn(ESTADOS_TALENTO),
+        validarLectorTalento,
+        check('estado', 'Estado no válido').optional().isString().isIn(ESTADOS_TALENTO),
+        check('area', 'Área no válida').optional().isString().isIn(AREAS_INTERES),
         validarCampos,
     ],
     asyncHandler(listarPostulaciones)
@@ -82,8 +83,7 @@ router.get(
 router.get(
     '/:id',
     [
-        validarJWT,
-        validarAdmin,
+        validarLectorTalento,
         check('id', 'El id no es válido').isMongoId(),
         validarCampos,
     ],

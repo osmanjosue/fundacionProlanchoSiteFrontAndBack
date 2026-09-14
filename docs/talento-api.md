@@ -55,8 +55,11 @@ El `POST` de postulaciones tiene además su propio límite (ver §3).
 
 ## 2. Autenticación
 
-El formulario público **no** requiere autenticación. Los tres endpoints administrativos sí,
-y además exigen ser **el usuario administrador** (no basta con estar logueado).
+Hay dos esquemas de autenticación paralelos: **Administrador** y **Lector del Directorio**.
+
+### 2.1 Autenticación de Administrador
+
+Requerido para modificar estados (`PATCH /api/talento/:id/estado`). El formulario público **no** requiere autenticación.
 
 **Obtener token:**
 
@@ -86,6 +89,38 @@ devuelve un token nuevo con la misma forma que el login.
 | `401` | `{ ok:false, msg:"No hay token en la peticion" }` | falta el header `x-token` |
 | `401` | `{ ok:false, msg:"token no valido" }` | token corrupto o expirado → redirigir al login |
 | `403` | `{ ok:false, msg:"No tienes permisos para realizar esta acción" }` | logueado pero no es el admin |
+
+### 2.2 Autenticación de Lector (Directorio de Talento)
+
+Requerido para leer datos (`GET /api/talento` y `GET /api/talento/:id`). Solo funciona para correos que el backend tenga registrados.
+
+**Paso 1: Solicitar enlace mágico (sin auth)**
+```
+POST /api/talento/acceso
+Content-Type: application/json
+{ "email": "talento@fundacion.org" }
+
+→ 200 { "ok": true, "msg": "Si tu correo tiene acceso, recibirás un enlace en unos minutos." }
+→ 429 (máximo 5 intentos por 15 minutos)
+```
+La respuesta siempre es la misma, incluso si el correo no existe, para no revelar la lista. Si existe, la persona recibe un correo con un enlace mágico (`?token=...`).
+
+**Paso 2: Canjear el enlace por una sesión**
+```
+POST /api/talento/acceso/canjear
+Content-Type: application/json
+{ "token": "eyJ..." } // token de la URL
+
+→ 200 { "ok": true, "msg": "Sesión iniciada correctamente", "email": "...", "token": "eyJ... (token de sesión)" }
+→ 401 { "ok": false, "msg": "El enlace no es válido o ha caducado" }
+```
+
+**Usar la sesión de lector:** header **`x-lector-token`**.
+```js
+fetch('/api/talento', { headers: { 'x-lector-token': tokenSesion } })
+```
+
+**Vigencia:** 8 horas. No es renovable. Cuando expira (o el correo se retira de la lista del servidor), devuelve `401 { "ok":false, "msg":"Acceso denegado o sesión expirada" }`.
 
 ---
 
@@ -220,9 +255,9 @@ async function enviarPostulacion(valores, archivoCV) {
 
 ---
 
-## 4. `GET /api/talento` — Listar postulaciones (admin)
+## 4. `GET /api/talento` — Listar postulaciones (directorio)
 
-Bandeja del panel administrativo. Requiere `x-token` de administrador.
+Bandeja del panel administrativo. Requiere **`x-lector-token`**.
 
 **Query params (todos opcionales):**
 
@@ -231,8 +266,11 @@ Bandeja del panel administrativo. Requiere `x-token` de administrador.
 | `page` | `1` | mínimo 1; valores menores o inválidos se corrigen a 1 |
 | `limit` | `10` | **máximo 50**; valores mayores se recortan a 50 |
 | `estado` | — | uno de `nuevo` \| `revisado` \| `descartado`. Otro valor → `400` |
+| `area` | — | uno de los valores de §3.3. Otro valor → `400` |
 
 Orden fijo: **`createdAt` descendente** (la más reciente primero).
+
+Nota: El filtro `area` busca en el historial completo (`areasInteres.area`). Incluye a cualquier persona que se haya postulado a esa área alguna vez, incluso si su postulación más reciente fue a otra distinta (para no perder candidatos viables).
 
 ```jsonc
 // 200
@@ -256,9 +294,9 @@ Ejemplos: `GET /api/talento?estado=nuevo&page=1&limit=20` (bandeja de pendientes
 
 ---
 
-## 5. `GET /api/talento/:id` — Ver una postulación (admin)
+## 5. `GET /api/talento/:id` — Ver una postulación (directorio)
 
-`:id` debe ser un ObjectId de Mongo válido (24 caracteres hexadecimales).
+Requiere **`x-lector-token`**. `:id` debe ser un ObjectId de Mongo válido (24 caracteres hexadecimales).
 
 ```jsonc
 // 200
@@ -369,10 +407,13 @@ Fechas: ISO 8601 UTC. Formatéalas en el cliente.
 
 | Endpoint | Auth | Éxito | Errores posibles |
 |---|---|---|---|
+| `POST /api/talento/acceso` | pública | `200` | `400`, `429`, `500` |
+| `POST /api/talento/acceso/canjear` | pública | `200` | `400`, `401`, `500` |
 | `POST /api/talento` | pública | `201` / `200` | `400`, `413`, `429`, `502`, `500` |
-| `GET /api/talento` | admin | `200` | `400`, `401`, `403`, `500` |
-| `GET /api/talento/:id` | admin | `200` | `400`, `401`, `403`, `404`, `500` |
-| `PATCH /api/talento/:id/estado` | admin | `200` | `400`, `401`, `403`, `404`, `500` |
+| `GET /api/talento` | lector (`x-lector-token`) | `200` | `400`, `401`, `500` |
+| `GET /api/talento/:id` | lector (`x-lector-token`) | `200` | `400`, `401`, `404`, `500` |
+| `GET /api/talento/magic/:id` | `?token=` (magic link) | `200` | `400`, `401`, `404`, `500` |
+| `PATCH /api/talento/:id/estado` | admin (`x-token`) | `200` | `400`, `401`, `403`, `404`, `500` |
 
 `500 { ok:false, msg:"Error interno del servidor" }` es posible en cualquiera; muestra un
 mensaje genérico y permite reintentar.
