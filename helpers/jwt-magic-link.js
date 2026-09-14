@@ -51,7 +51,10 @@ const EXPIRACION_SESION = '8h';
 
 const generarTokenLectorBase = (email, tipo, expiracion) => {
     return new Promise((resolve, reject) => {
-        const payload = { email: String(email).trim().toLowerCase(), type: tipo };
+        if (email === undefined || email === null || typeof email !== 'string' || email.trim() === '') {
+            return reject(`No se pudo generar el token de ${tipo}`);
+        }
+        const payload = { email: email.trim().toLowerCase(), type: tipo };
         jwt.sign(payload, process.env.MAGIC_LINK_SECRET, { expiresIn: expiracion }, (err, token) => {
             if (err) {
                 console.error(err);
@@ -71,7 +74,7 @@ const verificarTokenLectorBase = (token, tipoEsperado) => {
         }
         return payload;
     } catch (error) {
-        throw new Error(`Token de ${tipoEsperado} inválido o expirado`);
+        throw new Error('Token inválido o expirado');
     }
 };
 
