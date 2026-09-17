@@ -244,11 +244,24 @@ textarea.width100 {
   display: block;
 }
 
-.navbar--proLogo iframe,
-.navBar--proLogo iframe {
+.navbar--proLogo dotlottie-player,
+.navBar--proLogo dotlottie-player {
+  display: block;
+  width: 300px;
+  height: 150px;
+  max-width: 100%;
+  margin: 0 auto;
   border: 0 !important;
   outline: none !important;
   background: transparent !important;
+}
+
+.login--logo {
+  display: block;
+  width: 300px;
+  height: 150px;
+  max-width: 100%;
+  margin: 0 auto;
 }
 
 /* ── Menú pill (fixed — always visible) ──────────── */
