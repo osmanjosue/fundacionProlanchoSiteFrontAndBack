@@ -13,6 +13,8 @@ const RATE_LIMITS = {
     email: { max: 5, windowMs: 1 * MINUTE, message: 'Demasiados correos enviados. Intenta de nuevo en un minuto.' },
     chat: { max: 50, windowMs: 5 * MINUTE, message: 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.' },
     booking: { max: 10, windowMs: 15 * MINUTE, message: 'Demasiadas solicitudes de cita. Intenta de nuevo en unos minutos.' },
+    talento: { max: 5, windowMs: 15 * MINUTE, message: 'Demasiadas postulaciones enviadas. Intenta de nuevo más tarde.' },
+    talentoAcceso: { max: 5, windowMs: 15 * MINUTE, message: 'Demasiados intentos. Intenta de nuevo en unos minutos.' },
 };
 
 module.exports = { RATE_LIMITS };

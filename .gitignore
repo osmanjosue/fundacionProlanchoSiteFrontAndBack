@@ -1,3 +1,4 @@
 node_modules/
 .env
 helpers/borrar-email.service.ts
+/_pruebas
